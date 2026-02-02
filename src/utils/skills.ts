@@ -4,33 +4,57 @@ import * as os from 'os';
 import { Skill, AgentType } from '../types';
 import { getAgentConfig } from '../agents/config';
 
-const SKILLS_DIR = process.env.ASM_SKILLS_DIR || path.join(os.homedir(), '.agent-skills');
+// Get the repository root (where asm is installed)
+function getRepoRoot(): string {
+  // This assumes the CLI is run from the repo or we can find it
+  // Try to find the skills directory in current working directory or parent
+  let currentDir = process.cwd();
+  
+  while (currentDir !== path.dirname(currentDir)) {
+    const skillsDir = path.join(currentDir, 'skills');
+    if (fs.existsSync(skillsDir)) {
+      return currentDir;
+    }
+    currentDir = path.dirname(currentDir);
+  }
+  
+  // Fallback to the directory where this script is located
+  return path.resolve(__dirname, '..', '..');
+}
 
 export function getSkillsDirectory(): string {
-  return SKILLS_DIR;
+  return path.join(getRepoRoot(), 'skills');
+}
+
+export function getSkillDirPath(name: string): string {
+  return path.join(getSkillsDirectory(), name);
+}
+
+export function getSkillFilePath(name: string): string {
+  return path.join(getSkillDirPath(name), 'SKILL.md');
 }
 
 export function ensureSkillsDirectory(): void {
-  fs.ensureDirSync(SKILLS_DIR);
-}
-
-export function getSkillPath(name: string): string {
-  return path.join(SKILLS_DIR, `${name}.md`);
+  fs.ensureDirSync(getSkillsDirectory());
 }
 
 export function skillExists(name: string): boolean {
-  return fs.existsSync(getSkillPath(name));
+  return fs.existsSync(getSkillFilePath(name));
 }
 
 export function saveSkill(skill: Skill): void {
   ensureSkillsDirectory();
-  const skillPath = getSkillPath(skill.name);
+  const skillDir = getSkillDirPath(skill.name);
+  const skillPath = getSkillFilePath(skill.name);
+  
+  fs.ensureDirSync(skillDir);
+  
   const content = generateSkillMarkdown(skill);
   fs.writeFileSync(skillPath, content, 'utf-8');
 }
 
 export function loadSkill(name: string): Skill | null {
-  const skillPath = getSkillPath(name);
+  const skillPath = getSkillFilePath(name);
   if (!fs.existsSync(skillPath)) {
     return null;
   }
@@ -41,15 +65,22 @@ export function loadSkill(name: string): Skill | null {
 
 export function listSkills(): Skill[] {
   ensureSkillsDirectory();
-  const files = fs.readdirSync(SKILLS_DIR);
+  
+  if (!fs.existsSync(getSkillsDirectory())) {
+    return [];
+  }
+  
+  const entries = fs.readdirSync(getSkillsDirectory(), { withFileTypes: true });
   const skills: Skill[] = [];
   
-  for (const file of files) {
-    if (file.endsWith('.md')) {
-      const name = path.basename(file, '.md');
-      const skill = loadSkill(name);
-      if (skill) {
-        skills.push(skill);
+  for (const entry of entries) {
+    if (entry.isDirectory()) {
+      const skillPath = path.join(getSkillsDirectory(), entry.name, 'SKILL.md');
+      if (fs.existsSync(skillPath)) {
+        const skill = loadSkill(entry.name);
+        if (skill) {
+          skills.push(skill);
+        }
       }
     }
   }
@@ -58,9 +89,9 @@ export function listSkills(): Skill[] {
 }
 
 export function deleteSkill(name: string): boolean {
-  const skillPath = getSkillPath(name);
-  if (fs.existsSync(skillPath)) {
-    fs.removeSync(skillPath);
+  const skillDir = getSkillDirPath(name);
+  if (fs.existsSync(skillDir)) {
+    fs.removeSync(skillDir);
     return true;
   }
   return false;
@@ -118,94 +149,75 @@ export function parseSkillMarkdown(name: string, content: string): Skill {
   };
 }
 
-export function applySkillToRepository(skill: Skill, repoPath: string, agent: AgentType): void {
-  const agentConfig = getAgentConfig(agent);
-  const agentDir = path.join(repoPath, agentConfig.configPath);
-  const agentFile = path.join(agentDir, agentConfig.configFileName);
+// Symbolic link management for agents
+export function createSymbolicLink(skillName: string, agent: AgentType, targetRepoPath?: string): void {
+  const skillPath = getSkillFilePath(skillName);
   
-  fs.ensureDirSync(agentDir);
-  
-  let existingContent = '';
-  if (fs.existsSync(agentFile)) {
-    existingContent = fs.readFileSync(agentFile, 'utf-8');
+  if (!fs.existsSync(skillPath)) {
+    throw new Error(`Skill '${skillName}' not found.`);
   }
   
-  const skillHeader = `<!-- Skill: ${skill.name} -->`;
-  const skillFooter = `<!-- End Skill: ${skill.name} -->`;
+  let linkPath: string;
   
-  const skillSection = `${skillHeader}\n${skill.content}\n${skillFooter}`;
-  
-  if (existingContent.includes(skillHeader)) {
-    const regex = new RegExp(`${skillHeader}[\\s\\S]*?${skillFooter}`, 'g');
-    existingContent = existingContent.replace(regex, skillSection);
+  if (targetRepoPath) {
+    // Repository-specific link
+    linkPath = getAgentSkillLinkPath(targetRepoPath, agent, skillName);
   } else {
-    existingContent = existingContent 
-      ? `${existingContent}\n\n${skillSection}`
-      : skillSection;
+    // Global link
+    linkPath = getGlobalAgentSkillLinkPath(agent, skillName);
   }
   
-  fs.writeFileSync(agentFile, existingContent, 'utf-8');
+  // Ensure parent directory exists
+  fs.ensureDirSync(path.dirname(linkPath));
+  
+  // Remove existing link if present
+  if (fs.existsSync(linkPath)) {
+    fs.removeSync(linkPath);
+  }
+  
+  // Create symbolic link
+  fs.symlinkSync(skillPath, linkPath);
+}
+
+export function removeSymbolicLink(skillName: string, agent: AgentType, targetRepoPath?: string): void {
+  let linkPath: string;
+  
+  if (targetRepoPath) {
+    linkPath = getAgentSkillLinkPath(targetRepoPath, agent, skillName);
+  } else {
+    linkPath = getGlobalAgentSkillLinkPath(agent, skillName);
+  }
+  
+  if (fs.existsSync(linkPath)) {
+    fs.removeSync(linkPath);
+  }
+}
+
+function getAgentSkillLinkPath(repoPath: string, agent: AgentType, skillName: string): string {
+  const agentConfig = getAgentConfig(agent);
+  // Standard location: .{agent}/skills/{skill-name}.md
+  return path.join(repoPath, agentConfig.skillsPath, `${skillName}.md`);
+}
+
+function getGlobalAgentSkillLinkPath(agent: AgentType, skillName: string): string {
+  const agentConfig = getAgentConfig(agent);
+  return path.join(agentConfig.globalSkillsPath, `${skillName}.md`);
+}
+
+export function applySkillToRepository(skill: Skill, repoPath: string, agent: AgentType): void {
+  // Use symbolic link approach
+  createSymbolicLink(skill.name, agent, repoPath);
 }
 
 export function applySkillGlobally(skill: Skill, agent: AgentType): void {
-  const agentConfig = getAgentConfig(agent);
-  const globalDir = path.dirname(agentConfig.globalConfigPath);
-  
-  fs.ensureDirSync(globalDir);
-  
-  let existingContent = '';
-  if (fs.existsSync(agentConfig.globalConfigPath)) {
-    existingContent = fs.readFileSync(agentConfig.globalConfigPath, 'utf-8');
-  }
-  
-  const skillHeader = `<!-- Skill: ${skill.name} -->`;
-  const skillFooter = `<!-- End Skill: ${skill.name} -->`;
-  
-  const skillSection = `${skillHeader}\n${skill.content}\n${skillFooter}`;
-  
-  if (existingContent.includes(skillHeader)) {
-    const regex = new RegExp(`${skillHeader}[\\s\\S]*?${skillFooter}`, 'g');
-    existingContent = existingContent.replace(regex, skillSection);
-  } else {
-    existingContent = existingContent 
-      ? `${existingContent}\n\n${skillSection}`
-      : skillSection;
-  }
-  
-  fs.writeFileSync(agentConfig.globalConfigPath, existingContent, 'utf-8');
+  // Use symbolic link approach
+  createSymbolicLink(skill.name, agent);
 }
 
 export function removeSkillFromRepository(skillName: string, repoPath: string, agent: AgentType): void {
-  const agentConfig = getAgentConfig(agent);
-  const agentFile = path.join(repoPath, agentConfig.configPath, agentConfig.configFileName);
-  
-  if (!fs.existsSync(agentFile)) {
-    return;
-  }
-  
-  let content = fs.readFileSync(agentFile, 'utf-8');
-  const skillHeader = `<!-- Skill: ${skillName} -->`;
-  const skillFooter = `<!-- End Skill: ${skillName} -->`;
-  
-  const regex = new RegExp(`${skillHeader}[\\s\\S]*?${skillFooter}\\n?`, 'g');
-  content = content.replace(regex, '');
-  
-  fs.writeFileSync(agentFile, content.trim(), 'utf-8');
+  removeSymbolicLink(skillName, agent, repoPath);
 }
 
 export function removeSkillGlobally(skillName: string, agent: AgentType): void {
-  const agentConfig = getAgentConfig(agent);
-  
-  if (!fs.existsSync(agentConfig.globalConfigPath)) {
-    return;
-  }
-  
-  let content = fs.readFileSync(agentConfig.globalConfigPath, 'utf-8');
-  const skillHeader = `<!-- Skill: ${skillName} -->`;
-  const skillFooter = `<!-- End Skill: ${skillName} -->`;
-  
-  const regex = new RegExp(`${skillHeader}[\\s\\S]*?${skillFooter}\\n?`, 'g');
-  content = content.replace(regex, '');
-  
-  fs.writeFileSync(agentConfig.globalConfigPath, content.trim(), 'utf-8');
+  removeSymbolicLink(skillName, agent);
 }

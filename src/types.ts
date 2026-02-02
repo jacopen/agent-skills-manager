@@ -21,6 +21,8 @@ export interface AgentConfig {
   configPath: string;
   globalConfigPath: string;
   skillFormat: 'markdown' | 'yaml' | 'json';
+  skillsPath: string;
+  globalSkillsPath: string;
 }
 
 export interface RepositoryConfig {

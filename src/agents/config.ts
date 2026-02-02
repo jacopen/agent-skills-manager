@@ -9,7 +9,9 @@ export const AGENT_CONFIGS: Record<AgentType, AgentConfig> = {
     configFileName: 'CLAUDE.md',
     configPath: '.claude',
     globalConfigPath: path.join(os.homedir(), '.claude', 'CLAUDE.md'),
-    skillFormat: 'markdown'
+    skillFormat: 'markdown',
+    skillsPath: '.claude/skills',
+    globalSkillsPath: path.join(os.homedir(), '.claude', 'skills')
   },
   'codex-cli': {
     name: 'codex-cli',
@@ -17,7 +19,9 @@ export const AGENT_CONFIGS: Record<AgentType, AgentConfig> = {
     configFileName: 'CODEX.md',
     configPath: '.codex',
     globalConfigPath: path.join(os.homedir(), '.codex', 'CODEX.md'),
-    skillFormat: 'markdown'
+    skillFormat: 'markdown',
+    skillsPath: '.codex/skills',
+    globalSkillsPath: path.join(os.homedir(), '.codex', 'skills')
   },
   'gemini-cli': {
     name: 'gemini-cli',
@@ -25,7 +29,9 @@ export const AGENT_CONFIGS: Record<AgentType, AgentConfig> = {
     configFileName: 'GEMINI.md',
     configPath: '.gemini',
     globalConfigPath: path.join(os.homedir(), '.gemini', 'GEMINI.md'),
-    skillFormat: 'markdown'
+    skillFormat: 'markdown',
+    skillsPath: '.gemini/skills',
+    globalSkillsPath: path.join(os.homedir(), '.gemini', 'skills')
   },
   'opencode': {
     name: 'opencode',
@@ -33,7 +39,9 @@ export const AGENT_CONFIGS: Record<AgentType, AgentConfig> = {
     configFileName: 'AGENTS.md',
     configPath: '.opencode',
     globalConfigPath: path.join(os.homedir(), '.opencode', 'AGENTS.md'),
-    skillFormat: 'markdown'
+    skillFormat: 'markdown',
+    skillsPath: '.opencode/skills',
+    globalSkillsPath: path.join(os.homedir(), '.opencode', 'skills')
   }
 };
 

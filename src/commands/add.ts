@@ -56,7 +56,7 @@ export async function addSkill(name: string, options: AddOptions): Promise<void>
   saveSkill(skill);
   
   console.log(chalk.green(`✓ Skill '${name}' created successfully!`));
-  console.log(chalk.gray(`  Location: ${path.join(getSkillsDirectory(), `${name}.md`)}`));
+  console.log(chalk.gray(`  Location: ${path.join(getSkillsDirectory(), name, 'SKILL.md')}`));
   console.log(chalk.gray(`  Tags: ${tags.length > 0 ? tags.join(', ') : 'none'}`));
   console.log(chalk.gray(`  Agents: ${agents.join(', ')}`));
 }
