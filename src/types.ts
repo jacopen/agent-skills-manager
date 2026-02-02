@@ -12,7 +12,9 @@ export type AgentType =
   | 'claude-code' 
   | 'codex-cli' 
   | 'gemini-cli' 
-  | 'opencode';
+  | 'opencode'
+  | 'cursor'
+  | 'antigravity';
 
 export interface AgentConfig {
   name: string;

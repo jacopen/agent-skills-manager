@@ -42,6 +42,26 @@ export const AGENT_CONFIGS: Record<AgentType, AgentConfig> = {
     skillFormat: 'markdown',
     skillsPath: '.opencode/skills',
     globalSkillsPath: path.join(os.homedir(), '.opencode', 'skills')
+  },
+  'cursor': {
+    name: 'cursor',
+    displayName: 'Cursor',
+    configFileName: '.cursorrules',
+    configPath: '.cursor',
+    globalConfigPath: path.join(os.homedir(), '.cursor', '.cursorrules'),
+    skillFormat: 'markdown',
+    skillsPath: '.cursor/skills',
+    globalSkillsPath: path.join(os.homedir(), '.cursor', 'skills')
+  },
+  'antigravity': {
+    name: 'antigravity',
+    displayName: 'AntiGravity',
+    configFileName: 'AGENTS.md',
+    configPath: '.antigravity',
+    globalConfigPath: path.join(os.homedir(), '.antigravity', 'AGENTS.md'),
+    skillFormat: 'markdown',
+    skillsPath: '.antigravity/skills',
+    globalSkillsPath: path.join(os.homedir(), '.antigravity', 'skills')
   }
 };
 

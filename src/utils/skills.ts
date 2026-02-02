@@ -314,12 +314,12 @@ export function isSkillAppliedLocally(skillName: string, agent: AgentType, repoP
 
 // Get all agents that have this skill applied globally
 export function getGlobalApplyStatus(skillName: string): AgentType[] {
-  const agents: AgentType[] = ['claude-code', 'codex-cli', 'gemini-cli', 'opencode'];
+  const agents: AgentType[] = ['claude-code', 'codex-cli', 'gemini-cli', 'opencode', 'cursor', 'antigravity'];
   return agents.filter(agent => isSkillAppliedGlobally(skillName, agent));
 }
 
 // Get all agents that have this skill applied locally (to current directory)
 export function getLocalApplyStatus(skillName: string, repoPath: string): AgentType[] {
-  const agents: AgentType[] = ['claude-code', 'codex-cli', 'gemini-cli', 'opencode'];
+  const agents: AgentType[] = ['claude-code', 'codex-cli', 'gemini-cli', 'opencode', 'cursor', 'antigravity'];
   return agents.filter(agent => isSkillAppliedLocally(skillName, agent, repoPath));
 }

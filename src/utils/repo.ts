@@ -5,7 +5,7 @@ import { getAgentConfig } from '../agents/config';
 
 export function detectAgentInRepo(repoPath: string): AgentType | null {
   // Check for each agent's config directory
-  const agents: AgentType[] = ['claude-code', 'codex-cli', 'gemini-cli', 'opencode'];
+  const agents: AgentType[] = ['claude-code', 'codex-cli', 'gemini-cli', 'opencode', 'cursor', 'antigravity'];
   
   for (const agent of agents) {
     const agentConfig = getAgentConfig(agent);

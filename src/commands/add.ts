@@ -33,7 +33,7 @@ export async function addSkill(name: string, options: AddOptions): Promise<void>
   const tags = options.tags ? options.tags.split(',').map(t => t.trim()) : [];
   const agents: AgentType[] = options.agents 
     ? options.agents.split(',').map(a => a.trim()) as AgentType[]
-    : ['claude-code', 'codex-cli', 'gemini-cli', 'opencode'];
+    : ['claude-code', 'codex-cli', 'gemini-cli', 'opencode', 'cursor', 'antigravity'];
 
   // Validate agent types
   const validAgents = getAllAgents().map(a => a.name);
