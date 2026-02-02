@@ -223,3 +223,27 @@ export function removeSkillFromRepository(skillName: string, repoPath: string, a
 export function removeSkillGlobally(skillName: string, agent: AgentType): void {
   removeSymbolicLink(skillName, agent);
 }
+
+// Check if skill is applied globally for a specific agent
+export function isSkillAppliedGlobally(skillName: string, agent: AgentType): boolean {
+  const linkPath = getGlobalAgentSkillLinkPath(agent, skillName);
+  return fs.existsSync(linkPath);
+}
+
+// Check if skill is applied to a repository for a specific agent
+export function isSkillAppliedLocally(skillName: string, agent: AgentType, repoPath: string): boolean {
+  const linkPath = getAgentSkillLinkPath(repoPath, agent, skillName);
+  return fs.existsSync(linkPath);
+}
+
+// Get all agents that have this skill applied globally
+export function getGlobalApplyStatus(skillName: string): AgentType[] {
+  const agents: AgentType[] = ['claude-code', 'codex-cli', 'gemini-cli', 'opencode'];
+  return agents.filter(agent => isSkillAppliedGlobally(skillName, agent));
+}
+
+// Get all agents that have this skill applied locally (to current directory)
+export function getLocalApplyStatus(skillName: string, repoPath: string): AgentType[] {
+  const agents: AgentType[] = ['claude-code', 'codex-cli', 'gemini-cli', 'opencode'];
+  return agents.filter(agent => isSkillAppliedLocally(skillName, agent, repoPath));
+}
