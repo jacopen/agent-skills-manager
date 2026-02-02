@@ -41,3 +41,12 @@ coverage/
 .codex/
 .gemini/
 .opencode/
+.cursor/
+.antigravity/
+
+# User skills directory (local only)
+.asm/
+
+# Test artifacts
+skills/test-*/
+*.test.md
