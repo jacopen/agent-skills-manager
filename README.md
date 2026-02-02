@@ -1,155 +1,155 @@
 # Agent Skill Manager (ASM)
 
-AIエージェントのSkillを一元管理するCLIツールです。複数のリポジトリやグローバル設定に対して、Skillを簡単に適用できます。
+A CLI tool for centrally managing AI agent Skills. Easily apply Skills to multiple repositories and global configurations.
 
-**特徴**: 標準的なAGENT SKILL規格に従った構造（`skills/{skill-name}/SKILL.md`）でSkillを管理し、各エージェントにシンボリックリンクで提供します。
+**Features**: Manage Skills following the standard AGENT SKILL specification (`skills/{skill-name}/SKILL.md`) and provide them to each agent via symbolic links.
 
-## 対応エージェント
+## Supported Agents
 
 - Claude Code
 - Codex CLI
 - Gemini CLI
 - OpenCode
 
-## インストール
+## Installation
 
-### 方法1: ローカル開発ディレクトリからインストール（推奨）
+### Method 1: Install from local development directory (recommended)
 
 ```bash
-# リポジトリをクローン
+# Clone the repository
 git clone <repository-url>
 cd agent-skill-manager
 
-# 依存関係をインストール
+# Install dependencies
 npm install
 
-# ビルド
+# Build
 npm run build
 
-# グローバルにリンク（開発中の更新も自動反映）
+# Link globally (updates during development are automatically reflected)
 npm link
 ```
 
-### 方法2: パッケージとしてインストール
+### Method 2: Install as a package
 
 ```bash
-# リポジトリ内で
+# Within the repository
 npm install -g .
 ```
 
-### インストール確認
+### Verify Installation
 
 ```bash
-# パスの確認
+# Check path
 which asm
 
-# バージョン確認
+# Check version
 asm --version
 
-# ヘルプ表示
+# Display help
 asm --help
 ```
 
-### アンインストール
+### Uninstallation
 
 ```bash
 npm unlink -g agent-skill-manager
 ```
 
-## クイックスタート
+## Quick Start
 
 ```bash
-# 1. asmが使えることを確認
+# 1. Verify asm is available
 asm --version
 
-# 2. テスト用のSkillを作成
+# 2. Create a test Skill
 asm add hello-world -d "Test skill" -t test
 
-# 3. 作成したSkillを確認
+# 3. Verify the created Skill
 asm list
 
-# 4. 現在のリポジトリに適用（エージェント設定が必要）
-asm init -a claude-code  # 初回のみ
+# 4. Apply to current repository (agent configuration required)
+asm init -a claude-code  # Only for the first time
 asm apply hello-world
 
-# 5. シンボリックリンクを確認
+# 5. Verify symbolic links
 ls -la .claude/skills/
 ```
 
-## 使用方法
+## Usage
 
-### Skillを追加
+### Add Skill
 
 ```bash
-# 新規作成
+# Create new
 asm add my-skill -d "Description" -t tag1,tag2
 
-# ファイルから読み込み
+# Load from file
 asm add my-skill -f ./skill-content.md
 ```
 
-### Skill一覧
+### List Skills
 
 ```bash
 asm list
 
-# タグでフィルタ
+# Filter by tag
 asm list -t python
 
-# エージェントでフィルタ
+# Filter by agent
 asm list -a claude-code
 ```
 
-### Skillを削除
+### Remove Skill
 
 ```bash
 asm remove my-skill
 ```
 
-### Skillを適用
+### Apply Skill
 
 ```bash
-# 現在のリポジトリに適用（シンボリックリンク作成）
+# Apply to current repository (create symbolic link)
 asm apply my-skill
 
-# 特定のリポジトリに適用
+# Apply to specific repository
 asm apply my-skill -r /path/to/repo
 
-# グローバルに適用
+# Apply globally
 asm apply my-skill --global -a claude-code
 ```
 
-適用時には、対象のリポジトリまたはグローバル設定にシンボリックリンクが作成されます：
-- リポジトリ: `.claude/skills/{skill-name}.md` → `asm-repo/skills/{skill-name}/SKILL.md`
-- グローバル: `~/.claude/skills/{skill-name}.md` → `asm-repo/skills/{skill-name}/SKILL.md`
+When applying, symbolic links are created in the target repository or global configuration:
+- Repository: `.claude/skills/{skill-name}.md` → `asm-repo/skills/{skill-name}/SKILL.md`
+- Global: `~/.claude/skills/{skill-name}.md` → `asm-repo/skills/{skill-name}/SKILL.md`
 
-### リポジトリを初期化
+### Initialize Repository
 
 ```bash
-# Claude Code用に初期化
+# Initialize for Claude Code
 asm init
 
-# 他のエージェント用に初期化
+# Initialize for other agents
 asm init -a codex-cli
 ```
 
-## Skillの保存場所
+## Skill Storage Location
 
-Skillはこのリポジトリの `skills/` ディレクトリに保存されます：
+Skills are stored in the `skills/` directory of this repository:
 
 ```
 skills/
 ├── my-skill/
-│   └── SKILL.md          # Skill定義ファイル
+│   └── SKILL.md          # Skill definition file
 ├── frontend-design/
 │   └── SKILL.md
 └── typescript-standards/
     └── SKILL.md
 ```
 
-### SKILL.md フォーマット
+### SKILL.md Format
 
-標準的なAGENT SKILL規格に従い、YAML frontmatterを含むMarkdown形式：
+Following the standard AGENT SKILL specification, Markdown format with YAML frontmatter:
 
 ```markdown
 ---
@@ -166,23 +166,23 @@ updatedAt: 2026-02-02T00:00:00.000Z
 Your skill instructions here...
 ```
 
-## Git管理
+## Git Management
 
-Skillはこのリポジトリで一元管理し、Gitでバージョン管理できます：
+Skills are centrally managed in this repository and can be version controlled with Git:
 
 ```bash
-# 新しいSkillを追加
+# Add a new Skill
 asm add new-feature -d "New feature skill"
 
-# Gitにコミット
+# Commit to Git
 git add skills/new-feature/
 git commit -m "Add new-feature skill"
 git push
 ```
 
-## シンボリックリンクの仕組み
+## How Symbolic Links Work
 
-ASMは各エージェントに対してシンボリックリンクを作成することでSkillを提供します：
+ASM provides Skills to each agent by creating symbolic links:
 
 ```
 Your Project Repo          ASM Repo                    Agent Config
@@ -202,15 +202,15 @@ Your Project Repo          ASM Repo                    Agent Config
             └── skill-b.md  ─────────────── symlink ──────── (global)
 ```
 
-この方式の利点：
-- Skillを一元管理（単一の真実源）
-- 複数リポジトリで同じSkillを共有
-- GitでSkillのバージョン管理が可能
-- エージェントは標準的な方法でSkillを読み込み
+Benefits of this approach:
+- Centralized Skill management (single source of truth)
+- Share the same Skill across multiple repositories
+- Version control Skills with Git
+- Agents load Skills in a standard way
 
-## エージェント別設定パス
+## Agent-Specific Configuration Paths
 
-| エージェント | ローカルパス | グローバルパス |
+| Agent | Local Path | Global Path |
 |------------|------------|--------------|
 | Claude Code | `.claude/skills/` | `~/.claude/skills/` |
 | Codex CLI | `.codex/skills/` | `~/.codex/skills/` |
