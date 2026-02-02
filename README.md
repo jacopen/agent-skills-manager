@@ -135,19 +135,37 @@ asm init
 asm init -a codex-cli
 ```
 
-## Skill Storage Location
+## Skill Storage Locations
 
-Skills are stored in the `skills/` directory of this repository:
+ASM supports two types of skill storage:
+
+### 1. User Skills (`~/.asm/skills/`)
+
+User-created skills are stored in your home directory. This is where new skills are saved by default:
+
+```
+~/.asm/skills/
+├── my-custom-skill/
+│   └── SKILL.md          # Your custom skill definition
+└── project-templates/
+    └── SKILL.md
+```
+
+### 2. Built-in Skills (Repository)
+
+Standard skills provided with ASM are stored in the repository's `skills/` directory:
 
 ```
 skills/
-├── my-skill/
-│   └── SKILL.md          # Skill definition file
 ├── frontend-design/
-│   └── SKILL.md
+│   └── SKILL.md          # Built-in skill
 └── typescript-standards/
     └── SKILL.md
 ```
+
+**Skill Priority**: User skills take precedence over built-in skills. If a skill exists in both locations, the user version is used.
+
+**Deleting Skills**: You can only delete user skills. Built-in skills are managed by the repository and cannot be deleted through ASM.
 
 ### SKILL.md Format
 

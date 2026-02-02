@@ -4,7 +4,7 @@ import * as os from 'os';
 import { Skill, AgentType } from '../types';
 import { getAgentConfig } from '../agents/config';
 
-// Get the repository root (where asm is installed)
+// Get the repository root (where asm is installed) - for built-in skills
 function getRepoRoot(): string {
   // This assumes the CLI is run from the repo or we can find it
   // Try to find the skills directory in current working directory or parent
@@ -22,30 +22,57 @@ function getRepoRoot(): string {
   return path.resolve(__dirname, '..', '..');
 }
 
-export function getSkillsDirectory(): string {
+// Get user's skills directory (~/.asm/skills) - for user-created skills
+export function getUserSkillsDirectory(): string {
+  return path.join(os.homedir(), '.asm', 'skills');
+}
+
+// Get repository skills directory (built-in skills)
+export function getRepoSkillsDirectory(): string {
   return path.join(getRepoRoot(), 'skills');
 }
 
-export function getSkillDirPath(name: string): string {
-  return path.join(getSkillsDirectory(), name);
+// Legacy function - now defaults to user directory
+export function getSkillsDirectory(): string {
+  return getUserSkillsDirectory();
 }
 
+// Get skill directory path in user's skills directory
+function getUserSkillDirPath(name: string): string {
+  return path.join(getUserSkillsDirectory(), name);
+}
+
+// Get skill directory path in repo skills directory
+function getRepoSkillDirPath(name: string): string {
+  return path.join(getRepoSkillsDirectory(), name);
+}
+
+// Get skill file path (checks user dir first, then repo)
 export function getSkillFilePath(name: string): string {
-  return path.join(getSkillDirPath(name), 'SKILL.md');
+  // Check user directory first
+  const userPath = path.join(getUserSkillDirPath(name), 'SKILL.md');
+  if (fs.existsSync(userPath)) {
+    return userPath;
+  }
+  // Fallback to repo directory
+  return path.join(getRepoSkillDirPath(name), 'SKILL.md');
 }
 
+// Ensure user skills directory exists
 export function ensureSkillsDirectory(): void {
-  fs.ensureDirSync(getSkillsDirectory());
+  fs.ensureDirSync(getUserSkillsDirectory());
 }
 
+// Check if skill exists in either location
 export function skillExists(name: string): boolean {
   return fs.existsSync(getSkillFilePath(name));
 }
 
+// Save skill to user directory
 export function saveSkill(skill: Skill): void {
   ensureSkillsDirectory();
-  const skillDir = getSkillDirPath(skill.name);
-  const skillPath = getSkillFilePath(skill.name);
+  const skillDir = getUserSkillDirPath(skill.name);
+  const skillPath = path.join(skillDir, 'SKILL.md');
   
   fs.ensureDirSync(skillDir);
   
@@ -53,6 +80,7 @@ export function saveSkill(skill: Skill): void {
   fs.writeFileSync(skillPath, content, 'utf-8');
 }
 
+// Load skill from either user or repo directory
 export function loadSkill(name: string): Skill | null {
   const skillPath = getSkillFilePath(name);
   if (!fs.existsSync(skillPath)) {
@@ -63,37 +91,74 @@ export function loadSkill(name: string): Skill | null {
   return parseSkillMarkdown(name, content);
 }
 
+// List all skills from both user and repo directories
 export function listSkills(): Skill[] {
   ensureSkillsDirectory();
   
-  if (!fs.existsSync(getSkillsDirectory())) {
-    return [];
-  }
+  const skills = new Map<string, Skill>(); // Use Map to avoid duplicates
   
-  const entries = fs.readdirSync(getSkillsDirectory(), { withFileTypes: true });
-  const skills: Skill[] = [];
-  
-  for (const entry of entries) {
-    if (entry.isDirectory()) {
-      const skillPath = path.join(getSkillsDirectory(), entry.name, 'SKILL.md');
-      if (fs.existsSync(skillPath)) {
-        const skill = loadSkill(entry.name);
-        if (skill) {
-          skills.push(skill);
+  // Load from user directory first (user skills take precedence)
+  const userSkillsDir = getUserSkillsDirectory();
+  if (fs.existsSync(userSkillsDir)) {
+    const entries = fs.readdirSync(userSkillsDir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        const skillPath = path.join(userSkillsDir, entry.name, 'SKILL.md');
+        if (fs.existsSync(skillPath)) {
+          const skill = loadSkillFromPath(entry.name, skillPath);
+          if (skill) {
+            skills.set(entry.name, skill);
+          }
         }
       }
     }
   }
   
-  return skills;
+  // Load from repo directory (built-in skills)
+  const repoSkillsDir = getRepoSkillsDirectory();
+  if (fs.existsSync(repoSkillsDir)) {
+    const entries = fs.readdirSync(repoSkillsDir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        const skillPath = path.join(repoSkillsDir, entry.name, 'SKILL.md');
+        if (fs.existsSync(skillPath)) {
+          // Only add if not already in user skills
+          if (!skills.has(entry.name)) {
+            const skill = loadSkillFromPath(entry.name, skillPath);
+            if (skill) {
+              skills.set(entry.name, skill);
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  return Array.from(skills.values());
 }
 
+// Helper to load skill from specific path
+function loadSkillFromPath(name: string, skillPath: string): Skill | null {
+  const content = fs.readFileSync(skillPath, 'utf-8');
+  return parseSkillMarkdown(name, content);
+}
+
+// Delete skill from user directory (users can only delete their own skills)
 export function deleteSkill(name: string): boolean {
-  const skillDir = getSkillDirPath(name);
-  if (fs.existsSync(skillDir)) {
-    fs.removeSync(skillDir);
+  const userSkillDir = getUserSkillDirPath(name);
+  const repoSkillDir = getRepoSkillDirPath(name);
+  
+  // Can only delete from user directory
+  if (fs.existsSync(userSkillDir)) {
+    fs.removeSync(userSkillDir);
     return true;
   }
+  
+  // If it's a built-in skill, show error message
+  if (fs.existsSync(repoSkillDir)) {
+    throw new Error(`Cannot delete built-in skill '${name}'. Built-in skills are managed by the repository.`);
+  }
+  
   return false;
 }
 
@@ -147,6 +212,17 @@ export function parseSkillMarkdown(name: string, content: string): Skill {
     createdAt: metadata.createdAt || new Date().toISOString(),
     updatedAt: metadata.updatedAt || new Date().toISOString()
   };
+}
+
+// Helper to get skill directory path from either location
+export function getSkillDirPath(name: string): string {
+  // Check user directory first
+  const userDir = getUserSkillDirPath(name);
+  if (fs.existsSync(userDir)) {
+    return userDir;
+  }
+  // Fallback to repo directory
+  return getRepoSkillDirPath(name);
 }
 
 // Symbolic link management for agents
