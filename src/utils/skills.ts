@@ -151,9 +151,9 @@ export function parseSkillMarkdown(name: string, content: string): Skill {
 
 // Symbolic link management for agents
 export function createSymbolicLink(skillName: string, agent: AgentType, targetRepoPath?: string): void {
-  const skillPath = getSkillFilePath(skillName);
+  const skillDirPath = getSkillDirPath(skillName);
   
-  if (!fs.existsSync(skillPath)) {
+  if (!fs.existsSync(skillDirPath)) {
     throw new Error(`Skill '${skillName}' not found.`);
   }
   
@@ -175,8 +175,9 @@ export function createSymbolicLink(skillName: string, agent: AgentType, targetRe
     fs.removeSync(linkPath);
   }
   
-  // Create symbolic link
-  fs.symlinkSync(skillPath, linkPath);
+  // Create symbolic link to the skill directory (not just SKILL.md)
+  // This allows the skill to access other assets like images, templates, etc.
+  fs.symlinkSync(skillDirPath, linkPath);
 }
 
 export function removeSymbolicLink(skillName: string, agent: AgentType, targetRepoPath?: string): void {
@@ -195,13 +196,14 @@ export function removeSymbolicLink(skillName: string, agent: AgentType, targetRe
 
 function getAgentSkillLinkPath(repoPath: string, agent: AgentType, skillName: string): string {
   const agentConfig = getAgentConfig(agent);
-  // Standard location: .{agent}/skills/{skill-name}.md
-  return path.join(repoPath, agentConfig.skillsPath, `${skillName}.md`);
+  // Standard location: .{agent}/skills/{skill-name}/ (symlink to skill directory)
+  return path.join(repoPath, agentConfig.skillsPath, skillName);
 }
 
 function getGlobalAgentSkillLinkPath(agent: AgentType, skillName: string): string {
   const agentConfig = getAgentConfig(agent);
-  return path.join(agentConfig.globalSkillsPath, `${skillName}.md`);
+  // Standard location: ~/.{agent}/skills/{skill-name}/ (symlink to skill directory)
+  return path.join(agentConfig.globalSkillsPath, skillName);
 }
 
 export function applySkillToRepository(skill: Skill, repoPath: string, agent: AgentType): void {

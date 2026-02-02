@@ -120,8 +120,10 @@ asm apply my-skill --global -a claude-code
 ```
 
 When applying, symbolic links are created in the target repository or global configuration:
-- Repository: `.claude/skills/{skill-name}.md` → `asm-repo/skills/{skill-name}/SKILL.md`
-- Global: `~/.claude/skills/{skill-name}.md` → `asm-repo/skills/{skill-name}/SKILL.md`
+- Repository: `.claude/skills/{skill-name}/` → `asm-repo/skills/{skill-name}/` (entire skill directory)
+- Global: `~/.claude/skills/{skill-name}/` → `asm-repo/skills/{skill-name}/` (entire skill directory)
+
+This links the entire skill directory, allowing access to SKILL.md and any additional assets (images, templates, etc.).
 
 ### Initialize Repository
 
@@ -189,17 +191,19 @@ Your Project Repo          ASM Repo                    Agent Config
     │                         │                             │
     │                         ├── skills/                   │
     │                         │   ├── skill-a/              │
-    │                         │   │   └── SKILL.md          │
+    │                         │   │   ├── SKILL.md          │
+    │                         │   │   └── assets/           │
     │                         │   └── skill-b/              │
-    │                         │       └── SKILL.md          │
+    │                         │       ├── SKILL.md          │
+    │                         │       └── templates/        │
     │                         │                             │
     └── .claude/skills/  ←────┘                             │
-            ├── skill-a.md  ─────────────── symlink ────────┤
-            └── skill-b.md  ─────────────── symlink ────────┤
+            ├── skill-a ─────────────────── symlink ────────┤
+            └── skill-b ─────────────────── symlink ────────┤
                                                             │
     ~/.claude/skills/  ←────────────────────────────────────┘
-            ├── skill-a.md  ─────────────── symlink ──────── (global)
-            └── skill-b.md  ─────────────── symlink ──────── (global)
+            ├── skill-a ─────────────────── symlink ──────── (global)
+            └── skill-b ─────────────────── symlink ──────── (global)
 ```
 
 Benefits of this approach:
