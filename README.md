@@ -2,14 +2,26 @@
 
 A CLI tool for centrally managing AI agent Skills. Easily apply Skills to multiple repositories and global configurations.
 
-**Features**: Manage Skills following the standard AGENT SKILL specification (`skills/{skill-name}/SKILL.md`) and provide them to each agent via symbolic links.
+**Features**:
+- Manage Skills following the standard AGENT SKILL specification (`skills/{skill-name}/SKILL.md`)
+- Dual storage system: User skills (~/.asm/skills/) and built-in skills
+- Apply skills to multiple agents simultaneously
+- Entire skill directories (with assets) linked via symbolic links
+- Apply status tracking (global and local)
 
 ## Supported Agents
 
-- Claude Code
-- Codex CLI
-- Gemini CLI
-- OpenCode
+- **Claude Code** - Anthropic's Claude Code CLI
+- **Codex CLI** - OpenAI's Codex CLI
+- **Gemini CLI** - Google's Gemini CLI
+- **OpenCode** - OpenCode CLI
+- **Cursor** - Cursor IDE with AI coding assistant
+- **AntiGravity** - AntiGravity AI coding assistant
+
+## Requirements
+
+- Node.js >= 20.0.0
+- npm >= 10.0.0
 
 ## Installation
 
@@ -81,8 +93,11 @@ ls -la .claude/skills/
 ### Add Skill
 
 ```bash
-# Create new
+# Create new (applies to all 6 agents by default)
 asm add my-skill -d "Description" -t tag1,tag2
+
+# Create with specific agents only
+asm add my-skill -d "Description" -a claude-code,cursor
 
 # Load from file
 asm add my-skill -f ./skill-content.md
@@ -91,6 +106,7 @@ asm add my-skill -f ./skill-content.md
 ### List Skills
 
 ```bash
+# List all skills with apply status
 asm list
 
 # Filter by tag
@@ -100,9 +116,23 @@ asm list -t python
 asm list -a claude-code
 ```
 
+**Output example:**
+```
+  frontend-design
+    Description: Create distinctive, production-grade frontend interfaces...
+    Applied:
+      Global: claude-code, codex-cli, opencode
+    Updated: 2/2/2026
+
+  my-custom-skill
+    Applied: (not applied)
+    Updated: 2/2/2026
+```
+
 ### Remove Skill
 
 ```bash
+# Remove a user skill (built-in skills cannot be deleted)
 asm remove my-skill
 ```
 
@@ -120,8 +150,8 @@ asm apply my-skill --global -a claude-code
 ```
 
 When applying, symbolic links are created in the target repository or global configuration:
-- Repository: `.claude/skills/{skill-name}/` → `asm-repo/skills/{skill-name}/` (entire skill directory)
-- Global: `~/.claude/skills/{skill-name}/` → `asm-repo/skills/{skill-name}/` (entire skill directory)
+- Repository: `.claude/skills/{skill-name}/` → `~/.asm/skills/{skill-name}/` (entire skill directory)
+- Global: `~/.claude/skills/{skill-name}/` → `~/.asm/skills/{skill-name}/` (entire skill directory)
 
 This links the entire skill directory, allowing access to SKILL.md and any additional assets (images, templates, etc.).
 
@@ -133,6 +163,7 @@ asm init
 
 # Initialize for other agents
 asm init -a codex-cli
+asm init -a cursor
 ```
 
 ## Skill Storage Locations
@@ -146,9 +177,13 @@ User-created skills are stored in your home directory. This is where new skills 
 ```
 ~/.asm/skills/
 ├── my-custom-skill/
-│   └── SKILL.md          # Your custom skill definition
+│   ├── SKILL.md          # Your custom skill definition
+│   └── assets/
+│       └── diagram.png   # Additional assets
 └── project-templates/
-    └── SKILL.md
+    ├── SKILL.md
+    └── templates/
+        └── template.ts
 ```
 
 ### 2. Built-in Skills (Repository)
@@ -176,7 +211,7 @@ Following the standard AGENT SKILL specification, Markdown format with YAML fron
 name: my-skill
 description: Skill description
 tags: tag1, tag2
-agents: claude-code, codex-cli
+agents: claude-code, codex-cli, cursor, antigravity
 createdAt: 2026-02-02T00:00:00.000Z
 updatedAt: 2026-02-02T00:00:00.000Z
 ---
@@ -186,28 +221,51 @@ updatedAt: 2026-02-02T00:00:00.000Z
 Your skill instructions here...
 ```
 
-## Git Management
+## Development
 
-Skills are centrally managed in this repository and can be version controlled with Git:
+### Testing
 
 ```bash
-# Add a new Skill
-asm add new-feature -d "New feature skill"
+# Run tests
+npm test
 
-# Commit to Git
-git add skills/new-feature/
-git commit -m "Add new-feature skill"
-git push
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage
+npm run test:coverage
+
+# TypeScript type check
+npm run lint
 ```
+
+### Building
+
+```bash
+# Build TypeScript
+npm run build
+
+# Build and watch for changes
+npm run dev
+```
+
+## CI/CD
+
+This project uses GitHub Actions for continuous integration:
+
+- **Node.js versions tested**: 20.x, 22.x, 24.x
+- **Automated testing**: All tests run on every push and PR
+- **Coverage reporting**: Coverage uploaded to Codecov
+- **TypeScript checking**: Type checking with `tsc --noEmit`
 
 ## How Symbolic Links Work
 
 ASM provides Skills to each agent by creating symbolic links:
 
 ```
-Your Project Repo          ASM Repo                    Agent Config
+Your Project Repo          ASM User Skills             Agent Config
     │                         │                             │
-    │                         ├── skills/                   │
+    │                         ├── ~/.asm/skills/            │
     │                         │   ├── skill-a/              │
     │                         │   │   ├── SKILL.md          │
     │                         │   │   └── assets/           │
@@ -225,16 +283,24 @@ Your Project Repo          ASM Repo                    Agent Config
 ```
 
 Benefits of this approach:
-- Centralized Skill management (single source of truth)
-- Share the same Skill across multiple repositories
-- Version control Skills with Git
-- Agents load Skills in a standard way
+- **Dual Storage**: User skills and built-in skills managed separately
+- **Asset Support**: Skills can include images, templates, and other files
+- **Apply Status Tracking**: Know where skills are applied (global/local)
+- **Centralized Management**: Single source of truth for each skill
+- **Multi-Agent Support**: Same skill works across all 6 supported agents
+- **Version Control**: Built-in skills tracked in Git
 
 ## Agent-Specific Configuration Paths
 
-| Agent | Local Path | Global Path |
-|------------|------------|--------------|
-| Claude Code | `.claude/skills/` | `~/.claude/skills/` |
-| Codex CLI | `.codex/skills/` | `~/.codex/skills/` |
-| Gemini CLI | `.gemini/skills/` | `~/.gemini/skills/` |
-| OpenCode | `.opencode/skills/` | `~/.opencode/skills/` |
+| Agent | Config File | Local Path | Global Path |
+|-------|-------------|------------|-------------|
+| Claude Code | `CLAUDE.md` | `.claude/skills/` | `~/.claude/skills/` |
+| Codex CLI | `CODEX.md` | `.codex/skills/` | `~/.codex/skills/` |
+| Gemini CLI | `GEMINI.md` | `.gemini/skills/` | `~/.gemini/skills/` |
+| OpenCode | `AGENTS.md` | `.opencode/skills/` | `~/.opencode/skills/` |
+| Cursor | `.cursorrules` | `.cursor/skills/` | `~/.cursor/skills/` |
+| AntiGravity | `AGENTS.md` | `.antigravity/skills/` | `~/.antigravity/skills/` |
+
+## License
+
+MIT
